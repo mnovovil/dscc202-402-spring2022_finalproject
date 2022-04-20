@@ -84,6 +84,8 @@
 -- COMMAND ----------
 
 -- TBD
+SELECT *
+FROM Transactions
 
 -- COMMAND ----------
 
