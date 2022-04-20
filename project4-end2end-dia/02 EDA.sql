@@ -32,12 +32,24 @@
 
 -- COMMAND ----------
 
+-- MAGIC %sql
+-- MAGIC USE ethereumetl;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC ## Q: What is the maximum block number and date of block in the database
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC display(spark.sql("""SELECT number, timestamp FROM blocks 
+-- MAGIC     WHERE number IN (SELECT MAX(number) FROM blocks)"""))
+
+-- COMMAND ----------
+
+SELECT * FROM contracts C
+  INNER JOIN blocks B ON C.address=B.hash
 
 -- COMMAND ----------
 
@@ -46,7 +58,9 @@
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC # STEPS FOR SUCCESS
+-- MAGIC # INNER JOIN Contracts & Some other table to get timestamp (Blocks?) WHERE ERC20 is TRUE. Then, filter the df to show the minimum date.
 
 -- COMMAND ----------
 
@@ -55,7 +69,14 @@
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC ## FOR SOME REASON WE ARE NOT GETTING ANY ERC20 contracts
+-- MAGIC sql_statement = """
+-- MAGIC SELECT is_erc20 FROM contracts
+-- MAGIC """
+-- MAGIC 
+-- MAGIC df = spark.sql(sql_statement)
+-- MAGIC df.groupBy("is_erc20").count().show()
 
 -- COMMAND ----------
 
@@ -64,7 +85,8 @@
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC ## NO IDEA WHAT IN THE HELL a CALLS to CONTRACTS IS
 
 -- COMMAND ----------
 
@@ -73,7 +95,16 @@
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC 
+-- MAGIC ## FOR SOME REASON WE ARE NOT GETTING ANY ERC20 contracts
+-- MAGIC sql_statement = """
+-- MAGIC SELECT T.name FROM token_transfers TT
+-- MAGIC     INNER JOIN tokens T ON T.address=TT.token_address
+-- MAGIC """
+-- MAGIC 
+-- MAGIC df = spark.sql(sql_statement)
+-- MAGIC df.groupBy("name").count().show()
 
 -- COMMAND ----------
 
