@@ -26,9 +26,9 @@
 -- MAGIC %python
 -- MAGIC # Grab the global variables
 -- MAGIC wallet_address,start_date = Utils.create_widgets()
--- MAGIC print(wallet_address,start_date)
--- MAGIC spark.conf.set('wallet.address',wallet_address)
--- MAGIC spark.conf.set('start.date',start_date)
+-- MAGIC print(wallet_address, start_date)
+-- MAGIC spark.conf.set('wallet.address', wallet_address)
+-- MAGIC spark.conf.set('start.date', start_date)
 
 -- COMMAND ----------
 
@@ -48,19 +48,22 @@
 
 -- COMMAND ----------
 
-SELECT * FROM contracts C
-  INNER JOIN blocks B ON C.address=B.hash
-
--- COMMAND ----------
-
 -- MAGIC %md
 -- MAGIC ## Q: At what block did the first ERC20 transfer happen?
 
 -- COMMAND ----------
 
+SELECT number FROM blocks 
+
+-- COMMAND ----------
+
 -- MAGIC %python
--- MAGIC # STEPS FOR SUCCESS
--- MAGIC # INNER JOIN Contracts & Some other table to get timestamp (Blocks?) WHERE ERC20 is TRUE. Then, filter the df to show the minimum date.
+-- MAGIC 
+-- MAGIC sql_statement = """
+-- MAGIC SELECT MIN(block_number) FROM token_transfers
+-- MAGIC """
+-- MAGIC df = spark.sql(sql_statement)
+-- MAGIC display(df)
 
 -- COMMAND ----------
 
@@ -70,9 +73,9 @@ SELECT * FROM contracts C
 -- COMMAND ----------
 
 -- MAGIC %python
--- MAGIC ## FOR SOME REASON WE ARE NOT GETTING ANY ERC20 contracts
+-- MAGIC 
 -- MAGIC sql_statement = """
--- MAGIC SELECT is_erc20 FROM contracts
+-- MAGIC SELECT COUNT(transaction_hash) FROM token_transfers
 -- MAGIC """
 -- MAGIC 
 -- MAGIC df = spark.sql(sql_statement)
@@ -97,14 +100,19 @@ SELECT * FROM contracts C
 
 -- MAGIC %python
 -- MAGIC 
--- MAGIC ## FOR SOME REASON WE ARE NOT GETTING ANY ERC20 contracts
 -- MAGIC sql_statement = """
--- MAGIC SELECT T.name FROM token_transfers TT
--- MAGIC     INNER JOIN tokens T ON T.address=TT.token_address
+-- MAGIC SELECT T.name, TC.token_address, TC.transaction_count FROM (
+-- MAGIC   SELECT token_address, COUNT(transaction_hash) AS transaction_count
+-- MAGIC     FROM token_transfers
+-- MAGIC       GROUP BY token_address
+-- MAGIC         ORDER BY transaction_count DESC
+-- MAGIC           LIMIT 100
+-- MAGIC   ) TC
+-- MAGIC   INNER JOIN tokens T on T.address=TC.token_address
 -- MAGIC """
--- MAGIC 
 -- MAGIC df = spark.sql(sql_statement)
--- MAGIC df.groupBy("name").count().show()
+-- MAGIC 
+-- MAGIC display(df)
 
 -- COMMAND ----------
 
@@ -153,7 +161,13 @@ SELECT * FROM contracts C
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC 
+-- MAGIC sql_statement = """
+-- MAGIC SELECT SUM(gas_used) FROM receipts
+-- MAGIC """
+-- MAGIC df = spark.sql(sql_statement)
+-- MAGIC display(df)
 
 -- COMMAND ----------
 
@@ -162,7 +176,16 @@ SELECT * FROM contracts C
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC 
+-- MAGIC sql_statement = """
+-- MAGIC SELECT block_number, COUNT(hash) FROM transactions
+-- MAGIC     GROUP BY block_number
+-- MAGIC         ORDER BY block_number DESC
+-- MAGIC             LIMIT 1
+-- MAGIC """
+-- MAGIC df = spark.sql(sql_statement)
+-- MAGIC display(df)
 
 -- COMMAND ----------
 
