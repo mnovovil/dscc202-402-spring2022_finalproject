@@ -72,14 +72,12 @@ SELECT number FROM blocks
 
 -- COMMAND ----------
 
--- MAGIC %python
--- MAGIC 
--- MAGIC sql_statement = """
--- MAGIC SELECT COUNT(transaction_hash) FROM token_transfers
--- MAGIC """
--- MAGIC 
--- MAGIC df = spark.sql(sql_statement)
--- MAGIC df.groupBy("is_erc20").count().show()
+-- This assumes that the token addresses
+-- in the token_transfer table are all 
+-- ERC20 contract addresses
+SELECT 
+  COUNT(DISTINCT token_address)
+FROM token_transfers
 
 -- COMMAND ----------
 
@@ -98,21 +96,12 @@ SELECT number FROM blocks
 
 -- COMMAND ----------
 
--- MAGIC %python
--- MAGIC 
--- MAGIC sql_statement = """
--- MAGIC SELECT T.name, TC.token_address, TC.transaction_count FROM (
--- MAGIC   SELECT token_address, COUNT(transaction_hash) AS transaction_count
--- MAGIC     FROM token_transfers
--- MAGIC       GROUP BY token_address
--- MAGIC         ORDER BY transaction_count DESC
--- MAGIC           LIMIT 100
--- MAGIC   ) TC
--- MAGIC   INNER JOIN tokens T on T.address=TC.token_address
--- MAGIC """
--- MAGIC df = spark.sql(sql_statement)
--- MAGIC 
--- MAGIC display(df)
+SELECT
+  token_address, COUNT(transaction_hash) transaction_count
+FROM token_transfers
+GROUP BY token_address
+ORDER BY transaction_count DESC
+LIMIT 100
 
 -- COMMAND ----------
 
@@ -129,10 +118,26 @@ SELECT number FROM blocks
 -- MAGIC %md
 -- MAGIC ## Q: In what order are transactions included in a block in relation to their gas price?
 -- MAGIC - hint: find a block with multiple transactions 
+-- MAGIC 
+-- MAGIC ## A: The order of the transaction included in a block are in gas price descending order.
 
 -- COMMAND ----------
 
--- TBD
+/*
+-- Find a block number with more than 1 transaction in the
+-- last partition of block table
+SELECT number, transaction_count
+FROM blocks
+WHERE start_block>=14030000 start_block>=14030000 and transaction_count > 1
+LIMIT 10
+*/
+
+-- List all 155 transactions in this specific block
+-- The transactions look to be ordered with gas price in decending order
+SELECT 
+  hash, block_number, transaction_index, gas_price 
+FROM transactions 
+WHERE start_block>=14030000 and block_number = 14030401
 
 -- COMMAND ----------
 
@@ -161,13 +166,10 @@ SELECT number FROM blocks
 
 -- COMMAND ----------
 
--- MAGIC %python
--- MAGIC 
--- MAGIC sql_statement = """
--- MAGIC SELECT SUM(gas_used) FROM receipts
--- MAGIC """
--- MAGIC df = spark.sql(sql_statement)
--- MAGIC display(df)
+-- Total gas used in all transactions = 93783326139907
+-- gas_used = "The amount of gas used by this specific transaction alone"
+SELECT SUM(gas_used)
+FROM Receipts
 
 -- COMMAND ----------
 
@@ -213,8 +215,11 @@ SELECT number FROM blocks
 
 -- COMMAND ----------
 
--- TBD
-
+SELECT
+  token_address, from_address, to_address, value, block_number, timestamp, CAST((timestamp/1e6) AS TIMESTAMP), transaction_count
+FROM token_transfers TT
+LEFT JOIN blocks B ON B.number = TT.block_number
+WHERE token_address = "" AND CAST((timestamp/1e6) AS TIMESTAMP) >= '2021-12-25'
 
 -- COMMAND ----------
 
