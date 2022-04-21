@@ -70,6 +70,35 @@
 -- COMMAND ----------
 
 -- TBD
+SELECT *
+FROM Transactions
+WHERE gas_price == 0
+
+-- COMMAND ----------
+
+SELECT COUNT(*)
+FROM Transactions
+WHERE gas_price == 0
+-- Total calls (no cost to call) = 37795
+
+-- COMMAND ----------
+
+SELECT *
+FROM Transactions
+WHERE gas == 0
+
+-- COMMAND ----------
+
+SELECT COUNT(*)/177974618
+FROM Transactions
+WHERE gas_price == 0
+-- Fraction of calls to total transactions = 0.0002123617425042036
+
+-- COMMAND ----------
+
+SELECT COUNT(*)
+FROM Transactions
+-- Total Transactions = 177974618
 
 -- COMMAND ----------
 
