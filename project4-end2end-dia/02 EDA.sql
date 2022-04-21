@@ -156,7 +156,7 @@ FROM Transactions
 
 SELECT SUM(gas_used)
 FROM Receipts
--- Total gas used in all transactions = 
+-- Total gas used in all transactions = 93783326139907
 -- gas_used = "The amount of gas used by this specific transaction alone"
 
 -- COMMAND ----------
