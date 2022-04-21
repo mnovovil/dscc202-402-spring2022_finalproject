@@ -48,19 +48,8 @@
 
 -- COMMAND ----------
 
-SELECT * FROM contracts C
-  INNER JOIN blocks B ON C.address=B.hash
-
--- COMMAND ----------
-
 -- MAGIC %md
 -- MAGIC ## Q: At what block did the first ERC20 transfer happen?
-
--- COMMAND ----------
-
--- MAGIC %python
--- MAGIC # STEPS FOR SUCCESS
--- MAGIC # INNER JOIN Contracts & Some other table to get timestamp (Blocks?) WHERE ERC20 is TRUE. Then, filter the df to show the minimum date.
 
 -- COMMAND ----------
 
@@ -69,14 +58,12 @@ SELECT * FROM contracts C
 
 -- COMMAND ----------
 
--- MAGIC %python
--- MAGIC ## FOR SOME REASON WE ARE NOT GETTING ANY ERC20 contracts
--- MAGIC sql_statement = """
--- MAGIC SELECT is_erc20 FROM contracts
--- MAGIC """
--- MAGIC 
--- MAGIC df = spark.sql(sql_statement)
--- MAGIC df.groupBy("is_erc20").count().show()
+-- This assumes that the token addresses
+-- in the token_transfer table are all 
+-- ERC20 contract addresses
+SELECT 
+  COUNT(DISTINCT token_address)
+FROM token_transfers
 
 -- COMMAND ----------
 
@@ -95,16 +82,17 @@ SELECT * FROM contracts C
 
 -- COMMAND ----------
 
--- MAGIC %python
--- MAGIC 
--- MAGIC ## FOR SOME REASON WE ARE NOT GETTING ANY ERC20 contracts
--- MAGIC sql_statement = """
--- MAGIC SELECT T.name FROM token_transfers TT
--- MAGIC     INNER JOIN tokens T ON T.address=TT.token_address
--- MAGIC """
--- MAGIC 
--- MAGIC df = spark.sql(sql_statement)
--- MAGIC df.groupBy("name").count().show()
+SELECT
+  name, token_address, transaction_count
+FROM (
+  SELECT
+    token_address, COUNT(transaction_hash) transaction_count
+  FROM token_transfers
+  GROUP BY token_address
+  ORDER BY transaction_count DESC
+  LIMIT 100
+) TC
+LEFT JOIN tokens T on T.address = TC.token_address
 
 -- COMMAND ----------
 
@@ -121,10 +109,23 @@ SELECT * FROM contracts C
 -- MAGIC %md
 -- MAGIC ## Q: In what order are transactions included in a block in relation to their gas price?
 -- MAGIC - hint: find a block with multiple transactions 
+-- MAGIC 
+-- MAGIC ## A: The order of the transaction included in a block are in gas price descending order.
 
 -- COMMAND ----------
 
--- TBD
+/*
+-- Find a block number with more than 1 transaction in the
+-- last partition of block table
+SELECT number, transaction_count
+FROM blocks
+WHERE start_block>=14030000 start_block>=14030000 and transaction_count > 1
+LIMIT 10
+*/
+
+-- List all 155 transactions in this specific block
+-- The transactions look to be ordered with gas price in decending order
+SELECT hash, block_number, transaction_index, gas_price FROM transactions WHERE start_block>=14030000 and block_number = 14030401
 
 -- COMMAND ----------
 
@@ -191,7 +192,11 @@ SELECT * FROM contracts C
 -- COMMAND ----------
 
 -- TBD
-
+SELECT
+  token_address, from_address, to_address, value, block_number, timestamp, CAST((timestamp/1e6) AS TIMESTAMP), transaction_count
+FROM token_transfers TT
+LEFT JOIN blocks B ON B.number = TT.block_number
+WHERE token_address = "" AND CAST((timestamp/1e6) AS TIMESTAMP) >= '2021-12-25'
 
 -- COMMAND ----------
 
