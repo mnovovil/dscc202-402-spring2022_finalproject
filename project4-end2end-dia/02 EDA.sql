@@ -32,6 +32,11 @@
 
 -- COMMAND ----------
 
+-- MAGIC %sql
+-- MAGIC USE ethereumetl;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC ## Q: What is the maximum block number and date of block in the database
 
@@ -83,9 +88,26 @@
 
 -- COMMAND ----------
 
+Select Count(*)
+FROM Token_Transfers
+-- Total # of transfers = 922029708
+
+-- COMMAND ----------
+
 -- TBD
 SELECT *
-FROM Transactions
+FROM Token_Transfers
+WHERE value == 1
+
+-- There are multiple lines of the same token address going to the same to_address is this just an amount of token?
+
+-- COMMAND ----------
+
+SELECT COUNT(*)/922029708
+FROM Token_Transfers
+WHERE value == 1
+-- Number of transactions with transfer count (value) = 1/ total number of transactions
+-- fraction of ERC-20 transfers are sent to new addresses = 0.0019443831195946671
 
 -- COMMAND ----------
 
@@ -125,6 +147,17 @@ FROM Transactions
 -- COMMAND ----------
 
 -- TBD
+SELECT SUM(gas)
+FROM Transactions
+-- Total gas used in all transactions = 26962124687146
+-- gas = "gas provided by the sender"
+
+-- COMMAND ----------
+
+SELECT SUM(gas_used)
+FROM Receipts
+-- Total gas used in all transactions = 
+-- gas_used = "The amount of gas used by this specific transaction alone"
 
 -- COMMAND ----------
 
