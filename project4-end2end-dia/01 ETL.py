@@ -41,7 +41,15 @@ spark.conf.set('start.date',start_date)
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC USE ethereumetl;
 
+# COMMAND ----------
+
+blocks = spark.sql('SELECT * FROM transactions')
+
+for i in blocks.schema:
+    print(i)
 
 # COMMAND ----------
 

@@ -50,3 +50,7 @@ displayHTML(f"""
 <tr><td>ETHEREUM_DBNAME</td><td>{ETHEREUM_DBNAME}</td></tr>
 </table>
 """)
+
+# COMMAND ----------
+
+
