@@ -25,7 +25,7 @@
 
 -- MAGIC %python
 -- MAGIC # Grab the global variables
--- MAGIC wallet_address,start_date = Utils.create_widgets()
+-- MAGIC wallet_address, start_date = Utils.create_widgets()
 -- MAGIC print(wallet_address, start_date)
 -- MAGIC spark.conf.set('wallet.address', wallet_address)
 -- MAGIC spark.conf.set('start.date', start_date)
@@ -50,10 +50,6 @@
 
 -- MAGIC %md
 -- MAGIC ## Q: At what block did the first ERC20 transfer happen?
-
--- COMMAND ----------
-
-SELECT number FROM blocks 
 
 -- COMMAND ----------
 
@@ -196,7 +192,25 @@ FROM Receipts
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC sqlContext.setConf('spark.sql.shuffle.partitions', 'auto')
+-- MAGIC from pyspark.sql.functions import col
+-- MAGIC 
+-- MAGIC sql_statement = "SELECT from_address, token_address, -1*SUM(value) AS Total_From_Value FROM token_transfers T \
+-- MAGIC                         INNER JOIN (SELECT number FROM blocks WHERE CAST((timestamp/1e6) AS TIMESTAMP) <= '" + start_date + "') B ON B.number=T.block_number \
+-- MAGIC                             GROUP BY from_address, token_address;"
+-- MAGIC from_df = spark.sql(sql_statement)
+-- MAGIC 
+-- MAGIC sql_statement = "SELECT to_address, token_address, SUM(value) AS Total_To_Value FROM token_transfers T \
+-- MAGIC                         INNER JOIN (SELECT number FROM blocks WHERE CAST((timestamp/1e6) AS TIMESTAMP) <= '" + start_date + "') B ON B.number=T.block_number \
+-- MAGIC                             GROUP BY to_address, token_address;"
+-- MAGIC to_df = spark.sql(sql_statement)
+-- MAGIC 
+-- MAGIC df = from_df.join(to_df, ((from_df.from_address == to_df.to_address) & (from_df.token_address == to_df.token_address)), 'full')
+-- MAGIC df = df.fillna(value =0)
+-- MAGIC df = df.withColumn('Balance', col('Total_From_Value')+col('Total_To_Value'))
+-- MAGIC 
+-- MAGIC display(df)
 
 -- COMMAND ----------
 
