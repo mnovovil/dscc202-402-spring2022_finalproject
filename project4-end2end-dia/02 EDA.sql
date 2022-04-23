@@ -112,31 +112,6 @@ LIMIT 100
 
 -- COMMAND ----------
 
--- Brooke
-Select Count(*)
-FROM Token_Transfers
--- Total # of transfers = 922029708
-
--- COMMAND ----------
-
--- Brooke
-SELECT *
-FROM Token_Transfers
-WHERE value == 1
-
--- There are multiple lines of the same token address going to the same to_address is this just an amount of token?
-
--- COMMAND ----------
-
--- Brooke
-SELECT COUNT(*)/922029708
-FROM Token_Transfers
-WHERE value == 1
--- Number of transactions with transfer count (value) = 1/ total number of transactions
--- fraction of ERC-20 transfers are sent to new addresses = 0.0019443831195946671
-
--- COMMAND ----------
-
 -- Stefano
 SELECT token_address, from_address, Count(*)
 FROM token_transfers
