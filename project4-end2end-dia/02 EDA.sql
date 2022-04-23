@@ -38,7 +38,7 @@
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Q: What is the maximum block number and date of block in the database
+-- MAGIC ## Q: What is the maximum block number and date of block in the database 1
 
 -- COMMAND ----------
 
@@ -47,7 +47,7 @@
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Q: At what block did the first ERC20 transfer happen?
+-- MAGIC ## Q: At what block did the first ERC20 transfer happen? 2
 
 -- COMMAND ----------
 
@@ -56,7 +56,7 @@
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Q: How many ERC20 compatible contracts are there on the blockchain?
+-- MAGIC ## Q: How many ERC20 compatible contracts are there on the blockchain? 3
 
 -- COMMAND ----------
 
@@ -65,7 +65,7 @@
 -- COMMAND ----------
 
 -- MAGIC %md 
--- MAGIC ## Q: What percentage of transactions are calls to contracts
+-- MAGIC ## Q: What percentage of transactions are calls to contracts 4
 
 -- COMMAND ----------
 
@@ -103,7 +103,7 @@ FROM Transactions
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Q: What are the top 100 tokens based on transfer count?
+-- MAGIC ## Q: What are the top 100 tokens based on transfer count? 5
 
 -- COMMAND ----------
 
@@ -112,7 +112,7 @@ FROM Transactions
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Q: What fraction of ERC-20 transfers are sent to new addresses
+-- MAGIC ## Q: What fraction of ERC-20 transfers are sent to new addresses 6
 -- MAGIC (i.e. addresses that have a transfer count of 1 meaning there are no other transfers to this address for this token this is the first)
 
 -- COMMAND ----------
@@ -141,7 +141,7 @@ WHERE value == 1
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Q: In what order are transactions included in a block in relation to their gas price?
+-- MAGIC ## Q: In what order are transactions included in a block in relation to their gas price? 7
 -- MAGIC - hint: find a block with multiple transactions 
 
 -- COMMAND ----------
@@ -151,7 +151,7 @@ WHERE value == 1
 -- COMMAND ----------
 
 -- MAGIC %md
--- MAGIC ## Q: What was the highest transaction throughput in transactions per second?
+-- MAGIC ## Q: What was the highest transaction throughput in transactions per second? 8
 -- MAGIC hint: assume 15 second block time
 
 -- COMMAND ----------
