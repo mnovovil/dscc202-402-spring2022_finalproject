@@ -87,8 +87,25 @@ FROM token_transfers
 
 -- COMMAND ----------
 
--- MAGIC %python
--- MAGIC ## NO IDEA WHAT IN THE HELL a CALLS to CONTRACTS IS
+SELECT COUNT(*)
+FROM Transactions
+-- Total Transactions = 177974618
+
+
+
+-- COMMAND ----------
+
+SELECT COUNT(*)
+FROM Transactions
+WHERE gas_price == 0
+-- Total calls (no cost to call) = 37795
+
+-- COMMAND ----------
+
+SELECT COUNT(*)/177974618
+FROM Transactions
+WHERE gas_price == 0
+-- Fraction of calls to total transactions = 0.0002123617425042036 = 0.02124%
 
 -- COMMAND ----------
 
