@@ -207,7 +207,7 @@ FROM Receipts
 -- MAGIC to_df = spark.sql(sql_statement)
 -- MAGIC 
 -- MAGIC df = from_df.join(to_df, ((from_df.from_address == to_df.to_address) & (from_df.token_address == to_df.token_address)), 'full')
--- MAGIC df = df.fillna(value =0)
+-- MAGIC df = df.na.fill(0, ['Total_To_Value']).na.fill(0, ['Total_From_Value'])
 -- MAGIC df = df.withColumn('Balance', col('Total_From_Value')+col('Total_To_Value'))
 -- MAGIC 
 -- MAGIC display(df)
