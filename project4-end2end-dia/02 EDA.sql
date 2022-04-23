@@ -111,7 +111,10 @@ LIMIT 100
 
 -- COMMAND ----------
 
--- TBD
+SELECT token_address, from_address, Count(*)
+FROM token_transfers
+group by token_address, from_address
+HAVING count(*) = 1
 
 -- COMMAND ----------
 
