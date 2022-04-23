@@ -37,18 +37,13 @@
 
 -- COMMAND ----------
 
--- MAGIC %sql
--- MAGIC USE ethereumetl;
-
--- COMMAND ----------
-
 -- MAGIC %md
 -- MAGIC ## Q: What is the maximum block number and date of block in the database 1
 
 -- COMMAND ----------
 
 -- MAGIC %python
--- MAGIC display(spark.sql("""SELECT number, timestamp FROM blocks 
+-- MAGIC display(spark.sql("""SELECT number, CAST(timestamp AS TIMESTAMP) FROM blocks 
 -- MAGIC     WHERE number IN (SELECT MAX(number) FROM blocks)"""))
 
 -- COMMAND ----------
@@ -79,6 +74,17 @@
 SELECT 
   COUNT(DISTINCT token_address)
 FROM token_transfers
+
+-- COMMAND ----------
+
+SELECT COUNT(DISTINCT address) FROM tokens
+
+-- COMMAND ----------
+
+SELECT 
+  COUNT(DISTINCT contract_address)
+FROM token_prices_usd 
+WHERE asset_platform_id = 'ethereum' AND substr(contract_address, 1, 2) = '0x'
 
 -- COMMAND ----------
 
@@ -177,7 +183,8 @@ WHERE start_block>=14030000 and block_number = 14030401
 
 -- COMMAND ----------
 
--- TBD
+SELECT MAX(transaction_count)/15 as max_tps
+FROM blocks
 
 -- COMMAND ----------
 
@@ -269,11 +276,33 @@ FROM Receipts
 
 -- COMMAND ----------
 
+-- Ugly double aggregation sub-queries...
+-- inner most query groups token_transfers by block
+-- then joins blocks to get date
+-- final, outer, aggregation by date to sum total token transfers (in all blocks on those dates)
 SELECT
-  token_address, from_address, to_address, value, block_number, timestamp, CAST((timestamp/1e6) AS TIMESTAMP), transaction_count
-FROM token_transfers TT
-LEFT JOIN blocks B ON B.number = TT.block_number
-WHERE token_address = "" AND CAST((timestamp/1e6) AS TIMESTAMP) >= '2021-12-25'
+  block_date as transfer_date,
+  SUM(num_transactions) total_transfers
+FROM (
+  -- This sub-query gets the date associated with the token transfers' block
+  SELECT
+    block_number, 
+    num_transactions,
+    to_date(CAST(timestamp AS TIMESTAMP)) as block_date
+  FROM (
+    -- This sub-query counts token transfers by block
+    SELECT
+      block_number,
+      COUNT(transaction_hash) num_transactions,
+      start_block, 
+      end_block
+    FROM token_transfers TT
+    GROUP BY block_number, start_block, end_block
+  ) TT
+  LEFT JOIN blocks B ON B.number = TT.block_number AND B.start_block >= TT.start_block AND B.end_block <= TT.end_block
+)
+GROUP BY block_date
+ORDER BY block_date ASC 
 
 -- COMMAND ----------
 
