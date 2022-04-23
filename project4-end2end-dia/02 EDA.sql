@@ -213,7 +213,31 @@ FROM Receipts
 
 -- COMMAND ----------
 
--- TBD
+-- MAGIC %python
+-- MAGIC df = sqlContext.sql("SELECT transaction_count, timestamp FROM blocks")
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC from pyspark.sql import functions as F
+-- MAGIC # .withColumn("timestamp", (col("timestamp") / 1e6).cast("timestamp"))
+-- MAGIC # timedf = (df.withColumn("date", to_date(col("timestamp"))))
+-- MAGIC timedf = df.select("transaction_count", from_unixtime(col("timestamp"),"MM-dd-yyyy").alias("date"))
+-- MAGIC # time = timedf.agg(approx_count_distinct("date").alias("date")).sort(col("date"))
+-- MAGIC # time = timedf.select("transaction_count", "date").groupBy("date")
+-- MAGIC time = timedf.select("transaction_count", "date").groupBy('date').count()
+-- MAGIC display(time)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC display(timedf)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC filtdf = timedf.filter(col("date") != "null")
+-- MAGIC display(filtdf)
 
 -- COMMAND ----------
 
