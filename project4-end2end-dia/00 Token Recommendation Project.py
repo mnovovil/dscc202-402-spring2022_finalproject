@@ -18,7 +18,7 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Databricks Resources and Naming Conventions1
+# MAGIC ## Databricks Resources and Naming Conventions
 # MAGIC 
 # MAGIC - Each group has a specific Databricks Spark Cluster preconfigured for their group named **Gxx** (all provisioned the same) with 1 driver node and up to 8 workers.
 # MAGIC - Starting code package is [here](https://github.com/lpalum/dscc202-402-spring2022/tree/main/project4-end2end-dia) Each group should move this starting code to their group repo to get started.
