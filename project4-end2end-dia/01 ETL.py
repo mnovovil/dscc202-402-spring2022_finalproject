@@ -46,10 +46,62 @@ spark.conf.set('start.date',start_date)
 
 # COMMAND ----------
 
-blocks = spark.sql('SELECT * FROM transactions')
+# MAGIC %md
+# MAGIC ERC20 Token Transfers
 
-for i in blocks.schema:
-    print(i)
+# COMMAND ----------
+
+sql_statement = """
+SELECT TT.*, USD.price_usd, USD.symbol, USD.name, USD.image, USD.links, TT.Value*USD.price_usd AS USDValue
+    FROM (SELECT DISTINCT * FROM token_prices_usd) AS USD
+        INNER JOIN token_transfers TT ON TT.token_address = USD.contract_address
+            WHERE USD.asset_platform_id == 'ethereum'
+"""
+erc_token_transactions = spark.sql(sql_statement)
+erc_token_transactions.write.mode('overwrite').option('mergeSchema', 'true').partitionBy('start_block', 'end_block').saveAsTable('G01_db.SilverTable_ERC20Transactions')
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ERC271 Contract Transactions
+
+# COMMAND ----------
+
+sql_statement = """
+SELECT T.*
+    FROM contracts AS C
+        INNER JOIN transactions T ON T.to_address = C.address
+        RIGHT JOIN G01_db.SilverTable_ERC20Transactions ERC20 ON ERC20.transaction_hash=T.hash
+            WHERE ERC20.token_address IS NULL
+"""
+erc_token_transactions = spark.sql(sql_statement)
+erc_token_transactions.write.mode('overwrite').option('mergeSchema', 'true').partitionBy('start_block', 'end_block').saveAsTable('G01_db.SilverTable_ContractTransactions')
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Token Balance from Genius
+
+# COMMAND ----------
+
+sqlContext.setConf('spark.sql.shuffle.partitions', 'auto')
+from pyspark.sql.functions import col, coalesce
+
+sql_statement = "SELECT from_address, token_address AS from_token_address, -SUM(USDValue) AS Total_From_Value FROM G01_db.SilverTable_ERC20Transactions GROUP BY from_address, token_address;"
+from_df = spark.sql(sql_statement)
+
+sql_statement = "SELECT to_address, token_address AS to_token_address, SUM(USDValue) AS Total_To_Value FROM G01_db.SilverTable_ERC20Transactions GROUP BY to_address, token_address;"
+to_df = spark.sql(sql_statement)
+
+df = from_df.join(to_df, ((from_df.from_address == to_df.to_address) & (from_df.from_token_address == to_df.to_token_address)), 'full')
+df = df.na.fill(0, ['Total_To_Value']).na.fill(0, ['Total_From_Value'])
+df = df.withColumn('Balance', col('Total_From_Value')+col('Total_To_Value'))
+
+df = df.withColumn('WalletHash', coalesce(df['from_address'], df['to_address']))
+df = df.withColumn('TokenAddress', coalesce(df['from_token_address'], df['to_token_address']))
+df = df.drop(*('from_address', 'to_address', 'from_token_address', 'to_token_address'))
+
+df.write.mode('overwrite').option('mergeSchema', 'true').saveAsTable('G01_db.SilverTable_WalletBalance')
 
 # COMMAND ----------
 
