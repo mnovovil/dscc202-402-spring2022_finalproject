@@ -29,10 +29,10 @@
 # COMMAND ----------
 
 # Grab the global variables
-wallet_address,start_date = Utils.create_widgets()
-print(wallet_address,start_date)
-spark.conf.set('wallet.address',wallet_address)
-spark.conf.set('start.date',start_date)
+wallet_address, start_date = Utils.create_widgets()
+print(wallet_address, start_date)
+spark.conf.set('wallet.address', wallet_address)
+spark.conf.set('start.date', start_date)
 
 # COMMAND ----------
 
@@ -47,12 +47,12 @@ spark.conf.set('start.date',start_date)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ERC20 Token Transfers
+# MAGIC Applicable Transfers (Transfers that have a USD conversion)
 
 # COMMAND ----------
 
 sql_statement = """
-SELECT TT.*, USD.price_usd, USD.symbol, USD.name, USD.image, USD.links, TT.Value*USD.price_usd AS USDValue
+SELECT TT.*, USD.price_usd, TT.Value*USD.price_usd AS USDValue
     FROM (SELECT DISTINCT * FROM token_prices_usd) AS USD
         INNER JOIN token_transfers TT ON TT.token_address = USD.contract_address
             WHERE USD.asset_platform_id == 'ethereum'
@@ -63,45 +63,88 @@ erc_token_transactions.write.mode('overwrite').option('mergeSchema', 'true').par
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ERC271 Contract Transactions
+# MAGIC Lkp_UserWallet
 
 # COMMAND ----------
 
+sqlContext.setConf('spark.sql.shuffle.partitions', 'auto')
 sql_statement = """
-SELECT T.*
-    FROM contracts AS C
-        INNER JOIN transactions T ON T.to_address = C.address
-        RIGHT JOIN G01_db.SilverTable_ERC20Transactions ERC20 ON ERC20.transaction_hash=T.hash
-            WHERE ERC20.token_address IS NULL
+SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) as WalletID, WalletHash FROM
+    (SELECT DISTINCT C AS WalletHash FROM
+        (SELECT from_address as C FROM G01_db.SilverTable_ERC20Transactions) 
+        UNION
+        (SELECT to_address as C FROM G01_db.SilverTable_ERC20Transactions))
 """
-erc_token_transactions = spark.sql(sql_statement)
-erc_token_transactions.write.mode('overwrite').option('mergeSchema', 'true').partitionBy('start_block', 'end_block').saveAsTable('G01_db.SilverTable_ContractTransactions')
+
+df = spark.sql(sql_statement)
+
+df.write.mode('overwrite').option('mergeSchema', 'true').saveAsTable('G01_db.SilverTable_ExternalWallets')
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Token Balance from Genius
+# MAGIC Lkp_EthereumTokens
+
+# COMMAND ----------
+
+sql_statement = """
+SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS TokenID, * FROM 
+    (SELECT DISTINCT contract_address, symbol, name, description, links, image, price_usd 
+        FROM token_prices_usd
+            WHERE asset_platform_id == 'ethereum')
+"""
+
+df = spark.sql(sql_statement)
+
+df.write.mode('overwrite').option('mergeSchema', 'true').saveAsTable('G01_db.SilverTable_EthereumTokens')
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Token Balance from Genesis
 
 # COMMAND ----------
 
 sqlContext.setConf('spark.sql.shuffle.partitions', 'auto')
 from pyspark.sql.functions import col, coalesce
 
-sql_statement = "SELECT from_address, token_address AS from_token_address, -SUM(USDValue) AS Total_From_Value FROM G01_db.SilverTable_ERC20Transactions GROUP BY from_address, token_address;"
+# It is less expensive to get Wallet ID after the computations because the inner join is expensive
+sql_statement = """
+SELECT from_address, token_address AS from_token_address, -SUM(USDValue) AS Total_From_Value 
+    FROM G01_db.SilverTable_ERC20Transactions 
+        GROUP BY from_address, token_address;
+"""
 from_df = spark.sql(sql_statement)
 
-sql_statement = "SELECT to_address, token_address AS to_token_address, SUM(USDValue) AS Total_To_Value FROM G01_db.SilverTable_ERC20Transactions GROUP BY to_address, token_address;"
+sql_statement = """
+SELECT to_address, token_address AS to_token_address, SUM(USDValue) AS Total_To_Value
+    FROM G01_db.SilverTable_ERC20Transactions
+        GROUP BY to_address, token_address;
+"""
+
 to_df = spark.sql(sql_statement)
 
 df = from_df.join(to_df, ((from_df.from_address == to_df.to_address) & (from_df.from_token_address == to_df.to_token_address)), 'full')
 df = df.na.fill(0, ['Total_To_Value']).na.fill(0, ['Total_From_Value'])
 df = df.withColumn('Balance', col('Total_From_Value')+col('Total_To_Value'))
 
-df = df.withColumn('WalletHash', coalesce(df['from_address'], df['to_address']))
+df = df.withColumn('WalletAddress', coalesce(df['from_address'], df['to_address']))
 df = df.withColumn('TokenAddress', coalesce(df['from_token_address'], df['to_token_address']))
 df = df.drop(*('from_address', 'to_address', 'from_token_address', 'to_token_address'))
 
-df.write.mode('overwrite').option('mergeSchema', 'true').saveAsTable('G01_db.SilverTable_WalletBalance')
+token_lkp_df = spark.sql('SELECT * FROM G01_db.SilverTable_EthereumTokens')
+wallet_lkp_df = spark.sql('SELECT * FROM G01_db.SilverTable_ExternalWallets')
+
+df = df.join(token_lkp_df, (df.TokenAddress == token_lkp_df.contract_address), 'inner')
+df = df.join(wallet_lkp_df, (df.WalletAddress == wallet_lkp_df.WalletHash), 'inner')
+# df = df.select(col('WalletID'), col('TokenID'), col('Balance'))
+
+df.write.mode('overwrite').option('overwriteSchema', 'true').saveAsTable('G01_db.SilverTable_WalletBalance')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM G01_db.SilverTable_WalletBalance
 
 # COMMAND ----------
 
