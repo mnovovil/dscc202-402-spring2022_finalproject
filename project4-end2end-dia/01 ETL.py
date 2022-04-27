@@ -137,14 +137,9 @@ wallet_lkp_df = spark.sql('SELECT * FROM G01_db.SilverTable_ExternalWallets')
 
 df = df.join(token_lkp_df, (df.TokenAddress == token_lkp_df.contract_address), 'inner')
 df = df.join(wallet_lkp_df, (df.WalletAddress == wallet_lkp_df.WalletHash), 'inner')
-# df = df.select(col('WalletID'), col('TokenID'), col('Balance'))
+df = df.drop(*('Total_From_Value', 'Total_To_Value', 'WalletAddress', 'TokenAddress', 'contract_address', 'symbol', 'name', 'description', 'links', 'image', 'price_usd', 'WalletHash'))
 
 df.write.mode('overwrite').option('overwriteSchema', 'true').saveAsTable('G01_db.SilverTable_WalletBalance')
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC SELECT * FROM G01_db.SilverTable_WalletBalance
 
 # COMMAND ----------
 
